@@ -1,95 +1,34 @@
-import store from './flux/Store';
-import dispatcher from './flux/Dispatcher';
-import { removeProduct } from './flux/Action';
-import { Product } from './Root/types';
+import { state } from '../flux/store';
+import { dispatch } from '../flux/dispatcher';
+import { ActionTypes } from '../flux/action';
 
 class Cart extends HTMLElement {
-    private cart: Product[] = [];
+  constructor() {
+    super();
+    this.attachShadow({ mode: 'open' });
+    this.render();
+    document.addEventListener('stateChanged', () => this.render());
+  }
 
-    constructor() {
-        super();
-        this.attachShadow({ mode: 'open' });
-        this.handleStoreChange = this.handleStoreChange.bind(this);
+  render() {
+    if (!state.cart.length) {
+      this.shadowRoot!.innerHTML = '<p>Carrito vacío</p>';
+      return;
     }
+    const html = state.cart.map((item: any) => `
+      <div style="border:1px dashed #999;padding:0.5rem;margin:0.5rem">
+        <strong>${item.title}</strong> - ${item.price} USD
+        <button data-id="${item.id}">Eliminar</button>
+      </div>
+    `).join('');
 
-    connectedCallback() {
-        store.subscribe(this.handleStoreChange);
-        this.cart = store.getState().cart;
-        this.render();
-    }
-
-    disconnectedCallback() {
-        store.unsubscribe(this.handleStoreChange);
-    }
-
-    handleStoreChange() {
-        this.cart = store.getState().cart;
-        this.render();
-    }
-
-    handleRemoveProduct(id: number) {
-        dispatcher.dispatch(removeProduct(id));
-    }
-
-    render() {
-        if (!this.shadowRoot) return;
-        this.shadowRoot.innerHTML = `
-            <style>
-                :host {
-                    display: block;
-                    padding: 20px;
-                    background-color: #f1f1f1;
-                    border: 1px solid #ccc;
-                    border-radius: 8px;
-                    max-width: 400px;
-                    margin: 20px auto;
-                }
-                h2 {
-                    text-align: center;
-                    color: #333;
-                }
-                ul {
-                    list-style: none;
-                    padding: 0;
-                }
-                li {
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    padding: 8px 0;
-                    border-bottom: 1px solid #ddd;
-                }
-                button {
-                    background-color: #dc3545;
-                    color: white;
-                    border: none;
-                    border-radius: 4px;
-                    padding: 4px 8px;
-                    cursor: pointer;
-                    transition: background-color 0.3s;
-                }
-                button:hover {
-                    background-color: #a71d2a;
-                }
-            </style>
-            <h2>Carrito de Compras</h2>
-            <ul>
-                ${this.cart.length === 0 ? '<li>El carrito está vacío</li>' : this.cart.map(product => `
-                    <li>
-                        <span>${product.title} - $${product.price.toFixed(2)}</span>
-                        <button data-id="${product.id}">Eliminar</button>
-                    </li>
-                `).join('')}
-            </ul>
-        `;
-
-        this.shadowRoot.querySelectorAll('button').forEach(button => {
-            button.addEventListener('click', () => {
-                const id = parseInt((button as HTMLButtonElement).dataset.id!);
-                this.handleRemoveProduct(id);
-            });
-        });
-    }
+    this.shadowRoot!.innerHTML = `<h2>Carrito</h2>${html}`;
+    this.shadowRoot!.querySelectorAll('button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = parseInt((btn as HTMLButtonElement).dataset.id!);
+        dispatch({ type: ActionTypes.REMOVE_FROM_CART, payload: id });
+      });
+    });
+  }
 }
-
-export default Cart;
+customElements.define('shopping-cart', Cart);

@@ -1,8 +1,12 @@
-export * from './services/getdata'; 
-import RootComponent from './components/Root/Root'; 
-customElements.define('root-component', RootComponent); 
-import ProductList from './components/productlist';
-customElements.define('product-list', ProductList); 
+import { fetchProducts } from './components/utils/chache';
+import { dispatch } from './flux/dispatcher';
+import { ActionTypes } from './flux/action';
+import '../src/components/productlist';
+import '../src/components/cart';
 
-import Cart from './components/cart';
-customElements.define('cart', Cart);
+async function init() {
+  const products = await fetchProducts('https://fakestoreapi.com/products', 'StaleWhileRevalidate');
+  dispatch({ type: ActionTypes.SET_PRODUCTS, payload: products });
+}
+
+init();
